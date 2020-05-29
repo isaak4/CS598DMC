@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<header>
+    <title>Europe's patent generation</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
+    <!-- <script src="//d3js.org/d3-scale-chromatic.v0.3.min.js"></script> -->
+    <style>
+      ul {
+        width: 60%;
+        margin: auto;
+      }      
+      #tooltip {
+        position: absolute;
+        text-align: left;
+        padding: 5px;
+        align-content:flex-start;
+        /* width: 60px; height: 40px; */
+        border: 1px;
+        visibility: hidden;
+        z-index: 10;
+        background: rgb(204, 204, 204); /* Fallback for older browsers without RGBA-support */
+        background: rgba(204, 204, 204, 0.5);
+      }
+      footer {
+          position: fixed;
+          height: 100px;
+          bottom: 0;
+          width: 100%;
+      }
+      .slider {
+        /* -webkit-appearance: none;  Override default CSS styles */
+        appearance: none;
+        width: 20%; /* Full-width */
+        height: 25px; /* Specified height */
+        /* outline: none; Remove outline */
+        /* opacity: 0.7; Set transparency (for mouse-over effects on hover) */
+        -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+        transition: opacity .2s;
+      }
+    </style>
+    <script type="text/javascript">
+      var mydata;
+      var max_hrst=0, max_patents_per_mi=0, max_gov_edu_exp=0, max_gerd=0;
+      var min_hrst=0, min_patents_per_mi=0, min_gov_edu_exp=0, min_gerd=0;
+      var gwidth = 700, gheight = 600, gmargin = 50;
+      var Year = 2017;
+
+      var countryColor = d3.scaleOrdinal(d3.schemePaired)
+      var Countries = ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia", "Denmark", "Estonia", "Finland", "France", 
+                       "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands",
+                       "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden", "United Kingdom"]
+
+      async function init() {
+          await d3.csv("https://raw.githubusercontent.com/isaak4/CS498DV-7-3-3-Narrative-Visualization/master/EU28_innov.csv")
+          .then(function(d) { mydata = d;});
+          
+          initGraphs()
+
+          var slider = document.getElementById("myRange");
+          var output = document.getElementById("Year");
+          output.innerHTML = slider.value; // Display the default slider value
+          // Update the current slider value (each time you drag the slider handle)
+          slider.oninput = function() {
+            output.innerHTML = this.value;
+            Year = parseInt(this.value)
+            refreshGraphs()
+          }
+
+      }
+
+      function refreshGraphs(){
+        d3.selectAll("svg").remove()
+        initGraphs()
+      }
+
+      function initGraphs(){
+
+          // variables: Country, Year, hrst, patents_per_mi, gov_edu_exp, gerd
+          var svg1 = d3.select("#chart1").append("svg").attr("width", gwidth).attr("height", gheight), 
+              svg2 = d3.select("#chart2").append("svg").attr("width", gwidth).attr("height", gheight),
+              svg3 = d3.select("#chart3").append("svg").attr("width", gwidth).attr("height", gheight);
+          var tooltip = d3.select("body")
+                          .append("div")
+                          .attr("id","tooltip")
+          // tt = document.getElementById("toolid")
+          max_hrst = getMax(mydata, "hrst")
+          max_patents_per_mi = getMax(mydata, "patents_per_mi")
+          max_gov_edu_exp = getMax(mydata, "gov_edu_exp")
+          max_gerd = getMax(mydata, "gerd")
+          min_hrst = getMin(mydata, "hrst")
+          min_patents_per_mi = getMin(mydata, "patents_per_mi")
+          min_gov_edu_exp = getMin(mydata, "gov_edu_exp")
+          min_gerd = getMin(mydata, "gerd")
+
+          // Create axes
+          var ys = d3.scaleLinear()
+                  .domain([0, max_patents_per_mi])
+                  .range([gheight - 2 * gmargin, 0]);
+          var xs1 = d3.scaleLinear()
+                  .domain([min_gerd, max_gerd])
+                  .range([0, gwidth - 2 * gmargin]);
+          var xs2 = d3.scaleLinear()
+                  .domain([min_gov_edu_exp, max_gov_edu_exp])
+                  .range([0, gwidth - 2 * gmargin]);
+          var xs3 = d3.scaleLinear()
+                  .domain([min_hrst, max_hrst])
+                  .range([0, gwidth - 2 * gmargin]);
+          
+          
+          var yaxis = d3.axisLeft(ys);
+          var xaxis1 = d3.axisBottom(xs1);
+          var xaxis2 = d3.axisBottom(xs2);
+          var xaxis3 = d3.axisBottom(xs3);
+          var yTitle = "Patent applications per year per million inhabitants";
+
+          // ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia", "Denmark", "Estonia", "Finland", "France", 
+          // "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands",
+          // "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden", "United Kingdom"]
+          createGraph(svg1, xaxis1, yaxis, xs1, ys, mydata, "gerd", tooltip, "Total R&D expenses (as % of GDP)", yTitle)
+          createGraph(svg2, xaxis2, yaxis, xs2, ys, mydata, "gov_edu_exp", tooltip, "Total expenses on education (as % of GDP)", yTitle)
+          createGraph(svg3, xaxis3, yaxis, xs3, ys, mydata, "hrst", tooltip, "Employees in Science and Technology roles (as % of the active workforce)", yTitle)
+
+          const annotations = [[
+            {
+              note: {
+                label: "More patents after budget increase!",
+                title: "Austria"
+              },
+              x: xs1(3.16)+50,
+              y: ys(231.35)+50,
+              dy: -50,
+              dx: -200
+            }],
+            [{
+              note: {
+                label: "More badget, less output :-(",
+                title: "Italy"
+              },
+              x: xs1(1.35)+50,
+              y: ys(68.46)+50,
+              dy: -20,
+              dx: 250
+            }],
+            [{
+              note: {
+                label: "Number of patents remained in same levels despite reduction of education spendings.",
+                title: "United Kingdom"
+              },
+              x: xs2(4.6)+50,
+              y: ys(82.62)+50,
+              dy: -170,
+              dx: -100
+            }],
+            [{
+              note: {
+                label: "Spending on education has a decreasing trend during the last decade, that's not good! Have a look by clicking the datapoints.",
+                title: "Most countries"
+              },
+              x: xs2(6.5)+40,
+              y: ys(220)+50,
+              dy: 0,
+              dx: 0
+            }],
+            [{
+              note: {
+                label: "More workforce on Science and Tech jobs does not necessarily mean more patents.",
+                title: "Germany"
+              },
+              x: xs3(48.7)+50,
+              y: ys(228.81)+50,
+              dy: -20,
+              dx: -120
+            }],
+            [{
+              note: {
+                label: "Most commonly an increase of Science and Tech workforce does not impact the patent outcome. Have a look by clicking the datapoints.",
+                title: "Most countries"
+              },
+              x: xs3(25)+50,
+              y: ys(200)+50,
+              dy: 0,
+              dx: 0
+            }]
+          ]
+
+          highlightCountry(svg1, xs1, ys, mydata, "gerd", tooltip, "Austria", annotations[0])
+          highlightCountry(svg1, xs1, ys, mydata, "gerd", tooltip, "Italy", annotations[1])
+
+          highlightCountry(svg2, xs2, ys, mydata, "gov_edu_exp", tooltip, "United Kingdom", annotations[2])
+          highlightCountry(svg2, xs2, ys, mydata, "gov_edu_exp", tooltip, "", annotations[3])
+
+          highlightCountry(svg3, xs3, ys, mydata, "hrst", tooltip, "Germany", annotations[4])
+          highlightCountry(svg3, xs3, ys, mydata, "hrst", tooltip, "", annotations[5])
+      }
+
+      function createGraph(obj, xaxis, yaxis, xs, ys, d, xvalue, tooltip, xTitle="X-value", yTitle="Y-Value") {
+        // Graph all country points for year = Year
+        obj.append("g")
+            .attr("transform", "translate(" + gmargin + "," + gmargin + ")")
+            .call(yaxis);
+        obj.append("g")
+            .attr("transform", "translate(" + gmargin + "," + (gheight - gmargin) + ")")
+            .call(xaxis);
+        obj.append("g")
+            .attr("transform", "translate(" + gmargin + "," + gmargin + ")")
+            .selectAll('circle')
+            .data(mydata.filter(function(d){return d.Year == Year;}))
+            .enter().append('circle')
+            .attr("cx", function(d) {return xs(d[xvalue]);})
+            .attr("cy", function(d) {return ys(d.patents_per_mi);})
+            .attr("r", "7")
+            .attr("stroke", function(d,i) {return d3.color("black");})
+            .attr("fill", function(d,i) {return countryColor(i);})
+            .attr("html", function(d) {return d.Country;})
+            .on("mouseover", function(){return tooltip.style("visibility", "visible");})
+            .on("mousemove", 
+            function(d) {
+              hh = parseInt(tooltip.style('height'), 10)
+              tooltip.style("font-size", "12px")
+                     .style("top", (d3.event.pageY - hh)+"px")
+                     .style("left",(d3.event.pageX + 10)+"px")
+                     .html("<b>Country: " +d.Country + "<br>" +
+                            "Year: " + d.Year + "<br>" +
+                            "Patents per million inhabitants: " + d.patents_per_mi + "<br>" +
+                            "%GDP spent in R&D: " + d.gerd + "<br>" +
+                            "%GDP spent in education: " + d.gov_edu_exp + "<br>" +
+                            "%employees in Science and Tech roles: " + d.hrst + "<br>" +
+                            "<span style=color:red;> Click on data point to show history trail. </span>");
+            })
+            .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+            .on("mousedown", function(d){
+              drawHistoryTrail(obj, d, xs, ys, xvalue);
+              return tooltip.style("visibility", "hidden");});
+
+        // Draw axes
+        addAxesTitles(obj, xTitle, yTitle);
+      }
+
+      function highlightCountry(obj, xs, ys, data, xvalue, tooltip, country = "", annotation) {
+        // Draw highlighted countries
+        // Create path for highlighted countries
+        var countryPath = ""
+        var countriesFiltered = data.filter(
+            function(d){ return country == d.Country;}
+            )
+        countriesFiltered.forEach(function(d){ countryPath += [xs(d[xvalue]), ys(d.patents_per_mi)] + " "})
+        // console.log(countryPath)
+
+        // Draw polyline between historical values
+        obj.append("g")
+          .attr("transform", "translate(" + gmargin + "," + gmargin + ")")
+          .append('polyline')
+          .attr("stroke-width", 2)
+          .attr("points",countryPath)
+          //  function(d) { 
+          //   console.log(d)
+            // return d;            })
+            // return d.map(function(d) { return [xs(d[xvalue]), ys(d.patents_per_mi)].join(",");}).join(" ");})
+          .attr("stroke", countryColor(Countries.indexOf(country)))
+          .attr("fill", "none");
+          // .attr("stroke", function(d,i) {
+          //   var countryColorFade = d3.scaleLinear().domain([2008,2017]).range(["white", countryColor(Countries.indexOf(d.Country))])
+          //   //console.log(countryColorFade(parseInt(d.Year)))
+          //   return countryColorFade(parseInt(d.Year));});
+
+        // Draw diminishing circles for historical values
+        obj.append("g")
+          .attr("transform", "translate(" + gmargin + "," + gmargin + ")")
+          .selectAll('circle')
+          .data(mydata.filter(
+            function(d){
+              return country == d.Country;
+          }))
+          .enter().append('circle')
+          .attr("cx", function(d) {return xs(d[xvalue]);})
+          .attr("cy", function(d) {return ys(d.patents_per_mi);})
+          .attr("r", function(d,i){return (6/(Math.sqrt(2017-parseInt(d.Year))+1))+1;})
+          .attr("stroke", function(d,i) {return d3.color("black");})
+          .attr("fill", function(d,i) {
+            var countryColorFade = d3.scaleLinear().domain([2008,2017]).range(["white", countryColor(Countries.indexOf(d.Country))])
+            //console.log(countryColorFade(parseInt(d.Year)))
+            return countryColorFade(parseInt(d.Year));})
+          .attr("html", function(d) {return d.Country;})
+          .on("mouseover", function(){return tooltip.style("visibility", "visible");})
+          .on("mousemove", 
+          function(d) {
+            hh = parseInt(tooltip.style('height'), 10)
+            tooltip.style("font-size", "12px")
+                    .style("top", (d3.event.pageY - hh)+"px")
+                    .style("left",(d3.event.pageX + 10)+"px")
+                    .html("<b>Country: " +d.Country + "<br>" +
+                          "Year: " + d.Year + "<br>" +
+                          "Patents per million inhabitants: " + d.patents_per_mi + "<br>" +
+                          "%GDP spent in R&D: " + d.gerd + "<br>" +
+                          "%GDP spent in education: " + d.gov_edu_exp + "<br>" +
+                          "%employees in Science and Tech roles: " + d.hrst);
+          })
+          .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+
+          const makeAnnotations = d3.annotation()
+              .annotations(annotation)
+          obj.append("g")
+              .call(makeAnnotations)
+
+      }
+
+      function removeHistoryTrail(obj, d, xs, ys, xvalue){
+        d3.selectAll(".transient").remove()
+      }
+
+      function drawHistoryTrail(obj, data, xs, ys, xvalue){
+        var countryPath = ""
+        var countriesFiltered = mydata.filter(
+            function(d){ return data.Country == d.Country;}
+            )
+        countriesFiltered.forEach(function(d){ countryPath += [xs(d[xvalue]), ys(d.patents_per_mi)] + " "})
+        // console.log("Hi " +countryPath)
+
+        // Draw polyline between historical values
+        obj.append("g")
+          .attr("transform", "translate(" + gmargin + "," + gmargin + ")")
+          .append('polyline')
+          .attr("class", "transient")
+          .attr("stroke-width", 2)
+          .attr("fill", "none")          
+          .attr("points",countryPath)
+          .attr("stroke", countryColor(Countries.indexOf(data.Country)));
+
+        obj.append("g")
+          .attr("transform", "translate(" + gmargin + "," + gmargin + ")")
+          .selectAll('circle')
+          .data(mydata.filter(
+            function(d){
+              return data.Country == d.Country;
+          }))
+          .enter().append('circle')
+          .attr("class", "transient")
+          .attr("cx", function(d) {return xs(d[xvalue]);})
+          .attr("cy", function(d) {return ys(d.patents_per_mi);})
+          .attr("r", function(d,i){return (6/(Math.sqrt(2017-parseInt(d.Year))+1))+1;})
+          .attr("stroke", function(d,i) {return d3.color("black");})
+          .attr("fill", function(d,i) {
+            var countryColorFade = d3.scaleLinear().domain([2008,2017]).range(["white", countryColor(Countries.indexOf(d.Country))])
+            //console.log(countryColorFade(parseInt(d.Year)))
+            return countryColorFade(parseInt(d.Year));})
+          .on("mouseup", function(d){removeHistoryTrail(obj, d, xs, ys, xvalue);})
+          .on("mouseout", function(d){removeHistoryTrail(obj, d, xs, ys, xvalue);});
+
+      }
+          
+      function addAxesTitles(obj, xTitle="X-value", yTitle="Y-Value") {
+        obj.append("text")
+          .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+          .attr("transform", "translate(15,"+(gheight/2)+")rotate(-90)")  // text is drawn off the screen top left, move down and out and rotate
+          .text(yTitle);
+        obj.append("text")
+          .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+          .attr("transform", "translate("+ (gwidth/2) +","+(gheight-(gmargin/3))+")")  // centre below axis
+          .text(xTitle);            
+      }
+
+      function getMax(arr, field) {
+        var max = -100000;
+        var val = 0;
+        arr.forEach(function(obj) {
+          val = +obj[field];
+          if(val > max) {
+            max = val;
+          }
+        });
+        return max;
+      }
+
+      function getMin(arr, field) {
+        var min = 100000;
+        var val = 0;
+        arr.forEach(function(obj) {
+          val = +obj[field];
+          if(val < min) {
+            min = val;
+          }
+        });
+        return min;
+      }
+
+    </script>
+</header>
+<body onload="init()">
+
+    <div class="jumbotron text-center">
+      <h1 style="font-size: 500%;">Task 1: Exploration of a dataset</h1>
+      <p style="font-size: 200%;">CS 598 Data Mining Capstone</p> 
+    </div>
+            
+    <div class="container-fluid bg-3 text-center align-text-bottom">    
+      <div class="row" style="background-color:whitesmoke;">
+        <div class="col-lg-1"></div>
+        <div class="col-lg-10">
+          <h3>Navigation tips:</h3>
+          <ul class="text-left">
+            <li>Data points around the periphery correspond to word probabilities in a given topic.</li>
+            <li>Hover on top of a datapoint to see what is its probability on a tooltip.</li>
+          </ul>
+          <p></p>
+        </div>
+        <div class="col-lg-1"></div>
+      </div>
+      <div class="row" style="min-height: 5em;">
+      </div>
+
+      <div class="row" style="background-color:whitesmoke;">
+        <div class="col-lg-4">
+            <h3>Patent applications vs % of GDP expenditure on R&D.</h3>
+          <p>One would expect that an increase of expenditure on R&D activities would result in increased number of patents.</p>
+          <p>Well... not really so. It happens in some cases but usually not. </p>
+        </div>
+        <div id="chart1" class="col-lg-8"></div>
+      </div>
+      <div class="row" style="min-height: 5em;">
+
+      </div>
+      <div class="row" style="background-color:whitesmoke;">
+        <div class="col-lg-4">
+            <h3>Patent applications vs % of GDP spent on education.</h3>
+          <p>What about the spending on education?</p>
+          <p>Despite the decreasing trend on education budget, in most of the countries there has been no negative impact.</p>
+        </div>
+        <div id="chart2" class="col-lg-8"></div>
+      </div>
+      <div class="row" style="min-height: 5em;">
+
+      </div>
+      <div class="row" style="background-color:whitesmoke;">
+        <div class="col-lg-4">
+            <h3>Patent applications vs Human Resources in Science and Technology roles.</h3>
+          <p>Finally, the general trend of the increased workforce proportion working on Science and Tech jobs does not seem to produce more patents.</p>
+          <p>Sometimes the opposite! Have a look in the graph.</p>
+        </div>
+        <div id="chart3" class="col-lg-8"></div>
+      </div>
+      <div class="row">
+          <div class="col-lg-12">
+            <p><br></p>
+          </div>
+
+      </div>
+      <div class="row" style="background-color:whitesmoke;">
+        <div class="col-lg-3"></div>
+        <div class="col-lg-6">
+          <h3>What is the conclusion?</h3>
+          <p>It seems that the discussed metrics cannot adequately explain the patent productivity in the country level.</p>
+          <p>Apparently there are many other variables that influence the patent productivity which need to be further investigated to get a better understanding.</p>
+        </div>
+        <div class="col-lg-3"></div>
+      </div>
+      <div class="row" style="background-color:whitesmoke; min-height: 100px;"></div>
+      <footer class="fixed-bottom">
+          <div style="background-color:steelblue; min-height: 100px;" >
+              
+            <!-- <button type="button" class="btn btn-primary btn-lg">Medium</button> -->
+            <div class="slidecontainer" style="color:white; position: relative; top: 20px;">
+                <input type="range" min="2008" max="2017" value="2017" class="slider" id="myRange">
+                <p>Year: <span id="Year"></span></p>
+            </div>
+          </div>
+      </footer>
+    </div>
+  
+</body>
+</html>
