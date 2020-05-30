@@ -25,7 +25,7 @@
         visibility: hidden;
         z-index: 10;
         background: rgb(204, 204, 204); /* Fallback for older browsers without RGBA-support */
-        background: rgba(204, 204, 204, 0.5);
+        background: rgba(204, 204, 204, 0.9);
       }
       footer {
           position: fixed;
@@ -43,6 +43,18 @@
         -webkit-transition: .2s; /* 0.2 seconds transition on hover */
         transition: opacity .2s;
       }
+      .node text {
+        font: 12px sans-serif;
+      }
+
+      /* .node--internal circle {
+        fill: #F55;
+      } */
+
+      .node--internal text {
+        text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+      }
+
       .link {
         fill: none;
         stroke: #555;
@@ -53,9 +65,10 @@
     </style>
     <script type="text/javascript">
       var mydata;
-      var gwidth = 960, gheight = 1050;
+      var gwidth = 960, gheight = 800;
 
       var Color = d3.scaleOrdinal(d3.schemePaired)
+      let root
 
       async function init() {
           await d3.csv("https://raw.githubusercontent.com/isaak4/CS598DMC/master/topics1.csv")
@@ -81,8 +94,8 @@
               .size([360, 290])
               .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
 
-          var root = tree(stratify(mydata)
-              .sort(function(a, b) { return (a.height - b.height) || a.id.localeCompare(b.id); }));
+          root = tree(stratify(mydata)
+              .sort(function(a, b) { return (a.height - b.height)  }));
 
           var link = svg1.selectAll(".link")
             .data(root.descendants().slice(1))
@@ -103,7 +116,39 @@
 
           node.append("circle")
               .attr("r", 5)
-              .attr("fill", function(d) { return "hsla(32, 100%, 59%, " + ".5" + ")"; });
+              .attr("fill", function(d,i) { 
+                if (d.children){
+                  return Color(i);
+                }
+                else
+                {
+                  let max = 0;
+                  let root_topic = +d.data.id.split(".")[1].split(" ")[1]
+                  for (i = 0; i < root.children[root_topic].children.length; i++) {
+                    if (+root.children[root_topic].children[i].data.value > max){
+                      max = +root.children[root_topic].children[i].data.value
+                    }
+                  }                  
+                  let trans = Math.floor(+d.data.value / max * 255)
+                  // console.log(d.data.value)
+                  return Color(+d.data.id.split(".")[1].split(" ")[1])+trans.toString(16);
+                }
+                // return "hsla(64, 100%, 59%, " + ".5" + ")"; 
+              })
+              .on("mouseover", function(d){
+                if (+d.data.value != 0) {
+                return tooltip.style("visibility", "visible")};})
+              .on("mousemove", 
+              function(d) {
+                hh = parseInt(tooltip.style('height'), 10)
+                tooltip.style("font-size", "12px")
+                      .style("top", (d3.event.pageY - hh)+"px")
+                      .style("left",(d3.event.pageX + 10)+"px")
+                      .html(d.data.id.split(".") + "<br>" +
+                            "Weight: " + d.data.value + "<br>" 
+                            )
+                      ;})
+              .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
           node.append("text")
               .attr("dy", ".21em")
