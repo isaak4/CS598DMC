@@ -34,7 +34,7 @@
           width: 100%;
       }
       .node text {
-        font: 14px sans-serif;
+        font: 12px sans-serif;
       }
 
       /* .node--internal circle {
@@ -55,7 +55,7 @@
     </style>
     <script type="text/javascript">
       var mydata;
-      var gwidth = 960, gheight = 800;
+      var gwidth = 1000, gheight = 1000;
 
       var Color = d3.scaleOrdinal(d3.schemePaired)
       let root
@@ -74,6 +74,12 @@
                       .append("g")
                       .attr("transform", "translate(" + (gwidth / 2 - 15) + "," + (gheight / 2 + 25) + ")")
 
+          var svg2 = d3.select("#chart2")
+                      .append("svg")
+                      .attr("width", gwidth).attr("height", gheight)
+                      .append("g")
+                      .attr("transform", "translate(" + (gwidth / 2 - 15) + "," + (gheight / 2 + 25) + ")")
+
           var tooltip = d3.select("body")
                           .append("div")
                           .attr("id","tooltip")
@@ -81,7 +87,7 @@
           var stratify = d3.stratify()
               .parentId(function(d) { return d.id.substring(0, d.id.lastIndexOf(".")); });
           var tree = d3.cluster()
-              .size([360, 290])
+              .size([360, 350])
               .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
 
           root = tree(stratify(mydata)
@@ -108,7 +114,8 @@
               .attr("r", 5)
               .attr("fill", function(d,i) { 
                 if (d.children){
-                  return Color(i);
+                  
+                  return Color(+d.data.id.split(" ")[1]);
                 }
                 else
                 {
@@ -177,12 +184,22 @@
       </div>
 
       <div class="row justify-content-center" style="background-color:whitesmoke;">
-        <h3>Top-10 topics from unfiltered sample of yelp-dataset</h3>
+        
+        <!-- <div class="col-lg-2" style="background-color:blueviolet;"></div> -->
         <div id="chart1" class="col-lg-12"></div>
+        <!-- <div class="col-lg-4" style="background-color:brown;"></div> -->
+        <!-- <div class="col-lg-2"></div> -->
+      <div class="row" style="min-height: 5em;">
+
+      </div>
+
+      <div class="row justify-content-center" style="background-color:whitesmoke;">
+        <h3>Top-10 topics from unfiltered sample of yelp-dataset</h3>
+        <div id="chart2" class="col-lg-12"></div>
       </div>
       <div class="row" style="min-height: 5em;">
 
       </div>
-  
+      
 </body>
 </html>
