@@ -115,7 +115,8 @@
                 }                  
                 let trans = Math.floor(+d.data.value / max * 255)
                 // console.log(d.data.value)
-                return Color(+d.data.id.split(".")[1].split(" ")[1])+trans.toString(16);
+                return Color(+d.data.id.split(".")[1].split(" ")[1])
+                        +("0" + trans.toString(16)).slice(-2);
               }
             })
             .on("mouseover", function(d){
@@ -135,9 +136,38 @@
 
         node.append("text")
             .attr("dy", ".21em")
-            .attr("x", function(d) { return d.x < 180 === !d.children ? 6 : -6; })
-            .style("text-anchor", function(d) { return d.x < 180 === !d.children ? "start" : "end"; })
-            .attr("transform", function(d) { return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")"; })
+            .attr("x", function(d) { 
+              if (d.x < 0){
+                return d.x < 180 === !d.children ? -6 : 6; 
+              }
+              else{
+                return d.x < 180 === !d.children ? 6 : -6; 
+              }
+            })
+            .style("text-anchor", function(d) { 
+              if (d.x < 0){
+                return d.x < 180 === ((!d.children) || (!d.parent)) ? "end" : "start"; 
+              }
+              else {
+                return d.x < 180 === ((!d.children) || (!d.parent)) ? "start" : "end"; 
+              }
+            })
+            .attr("fill", function(d) {
+              if (d.data.value < 0){
+                return "red";
+              }
+              else{
+                return "black";
+              };
+            })
+            .attr("transform", function(d) { 
+              if (d.x < 0){
+                return "rotate(" + (d.x < 180 ? d.x + 90 : d.x - 90) + ")"; 
+              }
+              else{
+                return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")"; 
+              }
+            })
             .text(function(d) { return d.id.substring(d.id.lastIndexOf(".") + 1); });
 
       }
@@ -152,13 +182,13 @@
             .attr("width", 600).attr("height", gheight)
             // .attr("style", "background-color:red")
             .append("g")
-            .attr("transform", "translate(" + (600 - 100) + "," + (gheight / 2 + 25) + ")")
+            .attr("transform", "translate(" + (590) + "," + (gheight / 2 + 25) + ")")
 
           let svg3 = d3.select("#chart3").append("svg")
             .attr("width", 600).attr("height", gheight)
             // .attr("style", "background-color:green")
             .append("g")
-            .attr("transform", "translate(" + (50 ) + "," + (gheight / 2 + 25) + ")")
+            .attr("transform", "translate(" + (10) + "," + (gheight / 2 + 25) + ")")
 
           let svg4 = d3.select("#chart4").append("svg")
             .attr("width", gwidth).attr("height", gheight)
@@ -170,13 +200,13 @@
             .attr("width", 600).attr("height", gheight)
             // .attr("style", "background-color:red")
             .append("g")
-            .attr("transform", "translate(" + (600 - 100) + "," + (gheight / 2 + 25) + ")")
+            .attr("transform", "translate(" + (590) + "," + (gheight / 2 + 25) + ")")
 
           let svg6 = d3.select("#chart6").append("svg")
             .attr("width", 600).attr("height", gheight)
             // .attr("style", "background-color:green")
             .append("g")
-            .attr("transform", "translate(" + (50 ) + "," + (gheight / 2 + 25) + ")")
+            .attr("transform", "translate(" + (10) + "," + (gheight / 2 + 25) + ")")
 
           let stratify = d3.stratify()
               .parentId(function(d) { return d.id.substring(0, d.id.lastIndexOf(".")); });
@@ -207,17 +237,17 @@
             .sort(function(a, b) { return (a.height - b.height)  }));
           root4 = tree4(stratify(data4)
             .sort(function(a, b) { return (a.height - b.height)  }));
-          root5 = tree4(stratify(data5)
+          root5 = tree5(stratify(data5)
             .sort(function(a, b) { return (a.height - b.height)  }));
-          root6 = tree4(stratify(data6)
+          root6 = tree6(stratify(data6)
             .sort(function(a, b) { return (a.height - b.height)  }));
           
           createGraph(svg1, root1)
           createGraph(svg2, root2)
           createGraph(svg3, root3)
           createGraph(svg4, root4)
-          createGraph(svg5, root4)
-          createGraph(svg6, root4)
+          createGraph(svg5, root5)
+          createGraph(svg6, root6)
 
       }
 
