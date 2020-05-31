@@ -54,46 +54,27 @@
 
     </style>
     <script type="text/javascript">
-      var mydata;
-      var gwidth = 1000, gheight = 1000;
+      let data1, data2, data3;
+      let gwidth = 1000, gheight = 1000;
 
-      var Color = d3.scaleOrdinal(d3.schemePaired)
+      let Color = d3.scaleOrdinal(d3.schemePaired)
       let root
 
       async function init() {
           await d3.csv("https://raw.githubusercontent.com/isaak4/CS598DMC/master/topics1.csv")
-          .then(function(d) { mydata = d;});
+          .then(function(d) { data1 = d;});
+          await d3.csv("https://raw.githubusercontent.com/isaak4/CS598DMC/master/italian.csv")
+          .then(function(d) { data2 = d;});
+          await d3.csv("https://raw.githubusercontent.com/isaak4/CS598DMC/master/chinese.csv")
+          .then(function(d) { data3 = d;});
           initGraphs()
       }
-
-      function initGraphs(){
-          // variables: Country, Year, hrst, patents_per_mi, gov_edu_exp, gerd
-          var svg1 = d3.select("#chart1")
-                      .append("svg")
-                      .attr("width", gwidth).attr("height", gheight)
-                      .append("g")
-                      .attr("transform", "translate(" + (gwidth / 2 - 15) + "," + (gheight / 2 + 25) + ")")
-
-          var svg2 = d3.select("#chart2")
-                      .append("svg")
-                      .attr("width", gwidth).attr("height", gheight)
-                      .append("g")
-                      .attr("transform", "translate(" + (gwidth / 2 - 15) + "," + (gheight / 2 + 25) + ")")
-
-          var tooltip = d3.select("body")
+      function createGraph(obj, root) {
+        let tooltip = d3.select("body")
                           .append("div")
                           .attr("id","tooltip")
-          // tt = document.getElementById("toolid")
-          var stratify = d3.stratify()
-              .parentId(function(d) { return d.id.substring(0, d.id.lastIndexOf(".")); });
-          var tree = d3.cluster()
-              .size([360, 350])
-              .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
 
-          root = tree(stratify(mydata)
-              .sort(function(a, b) { return (a.height - b.height)  }));
-
-          var link = svg1.selectAll(".link")
+        let link = obj.selectAll(".link")
             .data(root.descendants().slice(1))
             .enter().append("path")
               .attr("class", "link")
@@ -104,58 +85,102 @@
                     + " " + project(d.parent.x, d.parent.y);
               });
 
-          var node = svg1.selectAll(".node")
-            .data(root.descendants())
-            .enter().append("g")
-              .attr("class", function(d) { return "node" + (d.children ? " node--internal" : " node--leaf"); })
-              .attr("transform", function(d) { return "translate(" + project(d.x, d.y) + ")"; });
+        let node = obj.selectAll(".node")
+          .data(root.descendants())
+          .enter().append("g")
+            .attr("class", function(d) { return "node" + (d.children ? " node--internal" : " node--leaf"); })
+            .attr("transform", function(d) { return "translate(" + project(d.x, d.y) + ")"; });
 
-          node.append("circle")
-              .attr("r", 5)
-              .attr("fill", function(d,i) { 
-                if (d.children){
-                  
-                  return Color(+d.data.id.split(" ")[1]);
-                }
-                else
-                {
-                  let max = 0;
-                  let root_topic = +d.data.id.split(".")[1].split(" ")[1]
-                  for (i = 0; i < root.children[root_topic].children.length; i++) {
-                    if (+root.children[root_topic].children[i].data.value > max){
-                      max = +root.children[root_topic].children[i].data.value
-                    }
-                  }                  
-                  let trans = Math.floor(+d.data.value / max * 255)
-                  // console.log(d.data.value)
-                  return Color(+d.data.id.split(".")[1].split(" ")[1])+trans.toString(16);
-                }
-              })
-              .on("mouseover", function(d){
-                if (+d.data.value != 0) {
-                return tooltip.style("visibility", "visible")};})
-              .on("mousemove", 
-              function(d) {
-                hh = parseInt(tooltip.style('height'), 10)
-                tooltip.style("font-size", "12px")
-                      .style("top", (d3.event.pageY - hh)+"px")
-                      .style("left",(d3.event.pageX + 10)+"px")
-                      .html(d.data.id.split(".") + "<br>" +
-                            "Weight: " + d.data.value + "<br>" 
-                            )
-                      ;})
-              .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+        node.append("circle")
+            .attr("r", 5)
+            .attr("fill", function(d,i) { 
+              if (d.children){
+                
+                return Color(+d.data.id.split(" ")[1]);
+              }
+              else
+              {
+                let max = 0;
+                let root_topic = +d.data.id.split(".")[1].split(" ")[1]
+                for (i = 0; i < root.children[root_topic].children.length; i++) {
+                  if (+root.children[root_topic].children[i].data.value > max){
+                    max = +root.children[root_topic].children[i].data.value
+                  }
+                }                  
+                let trans = Math.floor(+d.data.value / max * 255)
+                // console.log(d.data.value)
+                return Color(+d.data.id.split(".")[1].split(" ")[1])+trans.toString(16);
+              }
+            })
+            .on("mouseover", function(d){
+              if (+d.data.value != 0) {
+              return tooltip.style("visibility", "visible")};})
+            .on("mousemove", 
+            function(d) {
+              hh = parseInt(tooltip.style('height'), 10)
+              tooltip.style("font-size", "12px")
+                    .style("top", (d3.event.pageY - hh)+"px")
+                    .style("left",(d3.event.pageX + 10)+"px")
+                    .html(d.data.id.split(".") + "<br>" +
+                          "Weight: " + d.data.value + "<br>" 
+                          )
+                    ;})
+            .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
-          node.append("text")
-              .attr("dy", ".21em")
-              .attr("x", function(d) { return d.x < 180 === !d.children ? 6 : -6; })
-              .style("text-anchor", function(d) { return d.x < 180 === !d.children ? "start" : "end"; })
-              .attr("transform", function(d) { return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")"; })
-              .text(function(d) { return d.id.substring(d.id.lastIndexOf(".") + 1); });
+        node.append("text")
+            .attr("dy", ".21em")
+            .attr("x", function(d) { return d.x < 180 === !d.children ? 6 : -6; })
+            .style("text-anchor", function(d) { return d.x < 180 === !d.children ? "start" : "end"; })
+            .attr("transform", function(d) { return "rotate(" + (d.x < 180 ? d.x - 90 : d.x + 90) + ")"; })
+            .text(function(d) { return d.id.substring(d.id.lastIndexOf(".") + 1); });
 
-      }          
+      }
+
+      function initGraphs(){
+          let svg1 = d3.select("#chart1").append("svg")
+            .attr("width", gwidth).attr("height", gheight)
+            .append("g")
+            .attr("transform", "translate(" + (gwidth / 2 - 15) + "," + (gheight / 2 + 25) + ")")
+
+          let svg2 = d3.select("#chart2").append("svg")
+            .attr("width", 600).attr("height", gheight)
+            // .attr("style", "background-color:red")
+            .append("g")
+            .attr("transform", "translate(" + (600 - 100) + "," + (gheight / 2 + 25) + ")")
+
+          let svg3 = d3.select("#chart3").append("svg")
+            .attr("width", 600).attr("height", gheight)
+            // .attr("style", "background-color:green")
+            .append("g")
+            .attr("transform", "translate(" + (50 ) + "," + (gheight / 2 + 25) + ")")
+
+          let stratify = d3.stratify()
+              .parentId(function(d) { return d.id.substring(0, d.id.lastIndexOf(".")); });
+          let tree1 = d3.cluster()
+              .size([360, 400])
+              .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
+          let tree2 = d3.cluster()
+              .size([-180, 400])
+              .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
+          let tree3 = d3.cluster()
+              .size([180, 400])
+              .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
+
+          root1 = tree1(stratify(data1)
+            .sort(function(a, b) { return (a.height - b.height)  }));
+          root2 = tree2(stratify(data2)
+            .sort(function(a, b) { return (a.height - b.height)  }));
+          root3 = tree3(stratify(data3)
+            .sort(function(a, b) { return (a.height - b.height)  }));
+          
+          createGraph(svg1, root1)
+          createGraph(svg2, root2)
+          createGraph(svg3, root3)
+
+      }
+
       function project(x, y) {
-        var angle = (x - 90) / 180 * Math.PI, radius = y;
+        let angle = (x - 90) / 180 * Math.PI, radius = y;
         return [radius * Math.cos(angle), radius * Math.sin(angle)];
       }
 
@@ -180,26 +205,26 @@
           <p></p>
         </div>
       </div>
-      <div class="row" style="min-height: 5em;">
-      </div>
-
-      <div class="row justify-content-center" style="background-color:whitesmoke;">
-        
-        <!-- <div class="col-lg-2" style="background-color:blueviolet;"></div> -->
-        <div id="chart1" class="col-lg-12"></div>
-        <!-- <div class="col-lg-4" style="background-color:brown;"></div> -->
-        <!-- <div class="col-lg-2"></div> -->
-      <div class="row" style="min-height: 5em;">
-
-      </div>
+      <div class="row" style="min-height: 5em;"></div>
 
       <div class="row justify-content-center" style="background-color:whitesmoke;">
         <h3>Top-10 topics from unfiltered sample of yelp-dataset</h3>
-        <div id="chart2" class="col-lg-12"></div>
       </div>
-      <div class="row" style="min-height: 5em;">
+      <div class="row justify-content-center">
+        <div id="chart1" class="col-lg-8" ></div>
+      </div>
+      <div class="row" style="min-height: 5em;"></div>
 
+      <div class="row justify-content-center" style="background-color:whitesmoke;">
+        <h3>Top-10 topics from unfiltered sample of yelp-dataset</h3>
       </div>
+      <div class="row justify-content-center">
+        <div class="col-lg-2" ></div>
+        <div id="chart2" class="col-lg-4" ></div>
+        <div id="chart3" class="col-lg-4" ></div>
+        <div class="col-lg-2"></div>
+      </div>
+      <div class="row" style="min-height: 5em;"></div>
       
 </body>
 </html>
