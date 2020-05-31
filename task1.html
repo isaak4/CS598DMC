@@ -54,7 +54,7 @@
 
     </style>
     <script type="text/javascript">
-      let data1, data2, data3;
+      let data1, data2, data3, data4;
       let gwidth = 1000, gheight = 1000;
 
       let Color = d3.scaleOrdinal(d3.schemePaired)
@@ -67,6 +67,8 @@
           .then(function(d) { data2 = d;});
           await d3.csv("https://raw.githubusercontent.com/isaak4/CS598DMC/master/chinese.csv")
           .then(function(d) { data3 = d;});
+          await d3.csv("https://raw.githubusercontent.com/isaak4/CS598DMC/master/topics2.csv")
+          .then(function(d) { data4 = d;});
           initGraphs()
       }
       function createGraph(obj, root) {
@@ -154,6 +156,12 @@
             .append("g")
             .attr("transform", "translate(" + (50 ) + "," + (gheight / 2 + 25) + ")")
 
+          let svg4 = d3.select("#chart4").append("svg")
+            .attr("width", 600).attr("height", gheight)
+            // .attr("style", "background-color:green")
+            .append("g")
+            .attr("transform", "translate(" + (50 ) + "," + (gheight / 2 + 25) + ")")
+
           let stratify = d3.stratify()
               .parentId(function(d) { return d.id.substring(0, d.id.lastIndexOf(".")); });
           let tree1 = d3.cluster()
@@ -165,6 +173,9 @@
           let tree3 = d3.cluster()
               .size([180, 400])
               .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
+          let tree4 = d3.cluster()
+              .size([360, 400])
+              .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
 
           root1 = tree1(stratify(data1)
             .sort(function(a, b) { return (a.height - b.height)  }));
@@ -172,10 +183,13 @@
             .sort(function(a, b) { return (a.height - b.height)  }));
           root3 = tree3(stratify(data3)
             .sort(function(a, b) { return (a.height - b.height)  }));
+          root4 = tree4(stratify(data4)
+            .sort(function(a, b) { return (a.height - b.height)  }));
           
           createGraph(svg1, root1)
           createGraph(svg2, root2)
           createGraph(svg3, root3)
+          createGraph(svg4, root3)
 
       }
 
@@ -208,7 +222,7 @@
       <div class="row" style="min-height: 5em;"></div>
 
       <div class="row justify-content-center" style="background-color:whitesmoke;">
-        <h3>Top-10 topics from unfiltered sample of yelp-dataset</h3>
+        <h3>Top-10 topics using LDA from unfiltered sample of yelp-dataset</h3>
       </div>
       <div class="row justify-content-center">
         <div id="chart1" class="col-lg-8" ></div>
@@ -216,7 +230,15 @@
       <div class="row" style="min-height: 5em;"></div>
 
       <div class="row justify-content-center" style="background-color:whitesmoke;">
-        <h3>Top-10 topic comparison between italian and chinese restaurant reviews</h3>
+        <h3>Top-10 topics using LSI from unfiltered sample of yelp-dataset</h3>
+      </div>
+      <div class="row justify-content-center">
+        <div id="chart4" class="col-lg-8" ></div>
+      </div>
+      <div class="row" style="min-height: 5em;"></div>
+
+      <div class="row justify-content-center" style="background-color:whitesmoke;">
+        <h3>Top-10 topic comparison between Italian and Chinese restaurant reviews</h3>
       </div>
       <div class="row justify-content-center">
         <div class="col-lg-2" ></div>
